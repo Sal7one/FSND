@@ -3,9 +3,12 @@ from sqlalchemy import Column, String, Integer, create_engine
 from flask_sqlalchemy import SQLAlchemy
 import json
 
+# Custom database setup because compatibility issues
+PORT = 5432
+DB_USERNAME = 'student'
+DB_PATH = 'localhost'
 database_name = "trivia"
-database_path = "postgres://{}/{}".format('localhost:5432', database_name)
-
+database_path = f'postgresql://{DB_USERNAME}@{DB_PATH}:{PORT}/{database_name}'
 db = SQLAlchemy()
 
 '''

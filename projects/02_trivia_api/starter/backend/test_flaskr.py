@@ -14,8 +14,12 @@ class TriviaTestCase(unittest.TestCase):
         """Define test variables and initialize app."""
         self.app = create_app()
         self.client = self.app.test_client
+        # Custom database setup because compatibility issues
         self.database_name = "trivia_test"
-        self.database_path = "postgres://{}/{}".format('localhost:5432', self.database_name)
+        self.PORT = 5432
+        self.DB_USERNAME = 'student'
+        self.DB_PATH = 'localhost'
+        self.database_path = f'postgresql://{self.DB_USERNAME}@{self.DB_PATH}:{self.PORT}/{self.database_name}'
         setup_db(self.app, self.database_path)
 
         # binds the app to the current context

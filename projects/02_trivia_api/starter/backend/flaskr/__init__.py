@@ -4,6 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
+# The only way I got my python to import correctly is adding these
+import sys
+sys.path.append(os.path.abspath('../backend'))
+
 from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
