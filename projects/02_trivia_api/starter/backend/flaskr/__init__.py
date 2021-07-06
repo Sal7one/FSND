@@ -1,38 +1,142 @@
 import os
+import re
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
-# The only way I got my python to import correctly is adding these
-import sys
-sys.path.append(os.path.abspath('../backend'))
 
 from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+
 def create_app(test_config=None):
-  # create and configure the app
-  app = Flask(__name__)
-  setup_db(app)
-  
-  '''
+    # create and configure the apps
+    app = Flask(__name__)
+    setup_db(app)
+
+    '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
+    CORS(app, resources={r"/api/*": {'origins': '*'}})
 
-  '''
+
+    '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
+    #CORS Rules
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
 
-  '''
+
+    
+    '''
   @TODO: 
   Create an endpoint to handle GET requests 
   for all available categories.
-  '''
+  ''' 
+    # Helper function to create Questions objects
+    def getQuestionList(all_questions):
+            question_list = []
+
+            for question in all_questions:
+                  current_question =  {
+                      "id"  : question.id,
+                      "question"  : question.question,
+                      "answer": question.answer,
+                      "category": question.category,
+                      "difficulty": question.difficulty}
+                  question_list.append(current_question)
+            return question_list
+    # Helper function to make the database requests
+    def getQuestions(page, by_category_id = None, by_search = None):
+        try:
+          
+          response = {}
+          categories_list = {}
+          all_categories = Category.query.all()
+
+          if(by_category_id):
+            all_questions = Question.query.filter_by(category = by_category_id).all()
+            currentCategory = Category.query.filter_by(id = by_category_id).first()
+
+            question_list = getQuestionList(all_questions)
+
+            response ==  {
+                  'questions': question_list,
+                  'totalQuestions': len(question_list),
+                  'currentCategory': currentCategory
+                  }   
+
+            print("by_id")
+          elif(by_search):
+            print("By search")
+          else:
+              all_questions = Question.query.paginate(page, QUESTIONS_PER_PAGE, False)
+              all_questions = all_questions.items
+              question_list = getQuestionList(all_questions)
+
+              all_categories = Category.query.all()
+              for category in all_categories:
+                  categories_list[category.id] = category.type
+
+              response = {
+              'questions': question_list,
+              'totalQuestions': len(question_list),
+              'categories': categories_list,
+              'currentCategory': ''
+              }   
+
+          return response  
+        except os.error as error:
+          print("Server Error: Could not get Database data")
+          print(error)
+          return None
 
 
-  '''
+    @app.route('/questions/')
+    def retrieve_questions():
+        page = request.args.get('page', default = 1, type = int)
+        print("getting page ")
+        print(page)
+        result = getQuestions(page)
+
+        question_data = result
+        if(len(question_data) == 0):
+          abort(400)
+
+        return jsonify(question_data)
+
+    @app.route('/categories/<category_id>')
+    def questions_by_category(category_id):
+        page = request.args.get('page', default = 1, type = int)
+        result = getQuestions(page, category_id)
+
+        if(result == None):
+          abort(500)
+        question_data = result
+        if(len(question_data) == 0):
+          abort(400)
+
+        return jsonify(question_data)
+
+
+    @app.route('/category/<category_id>/questions')
+    def questions_by_asdcategory(category_id):
+        page = request.args.get('page', default = 1, type = int)
+
+        result = getQuestions(page, category_id)
+
+        # question_data = result
+        # if(len(question_data) == 0):
+        #   abort(400)
+
+        return jsonify({"question_data"})
+    '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
   including pagination (every 10 questions). 
@@ -45,7 +149,7 @@ def create_app(test_config=None):
   Clicking on the page numbers should update the questions. 
   '''
 
-  '''
+    '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
 
@@ -53,7 +157,7 @@ def create_app(test_config=None):
   This removal will persist in the database and when you refresh the page. 
   '''
 
-  '''
+    '''
   @TODO: 
   Create an endpoint to POST a new question, 
   which will require the question and answer text, 
@@ -64,7 +168,7 @@ def create_app(test_config=None):
   of the questions list in the "List" tab.  
   '''
 
-  '''
+    '''
   @TODO: 
   Create a POST endpoint to get questions based on a search term. 
   It should return any questions for whom the search term 
@@ -75,7 +179,7 @@ def create_app(test_config=None):
   Try using the word "title" to start. 
   '''
 
-  '''
+    '''
   @TODO: 
   Create a GET endpoint to get questions based on category. 
 
@@ -84,8 +188,7 @@ def create_app(test_config=None):
   category to be shown. 
   '''
 
-
-  '''
+    '''
   @TODO: 
   Create a POST endpoint to get questions to play the quiz. 
   This endpoint should take category and previous question parameters 
@@ -97,12 +200,10 @@ def create_app(test_config=None):
   and shown whether they were correct or not. 
   '''
 
-  '''
+    '''
   @TODO: 
   Create error handlers for all expected errors 
   including 404 and 422. 
   '''
-  
-  return app
 
-    
+    return app
