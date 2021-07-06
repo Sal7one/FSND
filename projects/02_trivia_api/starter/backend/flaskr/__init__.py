@@ -21,121 +21,145 @@ def create_app(test_config=None):
   '''
     CORS(app, resources={r"/api/*": {'origins': '*'}})
 
-
     '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
-    #CORS Rules
+    # CORS Rules
     @app.after_request
     def after_request(response):
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers',
+                             'Content-Type,Authorization,true')
+        response.headers.add('Access-Control-Allow-Methods',
+                             'GET,PUT,POST,DELETE,OPTIONS')
         return response
 
-
-    
     '''
   @TODO: 
   Create an endpoint to handle GET requests 
   for all available categories.
-  ''' 
+  '''
     # Helper function to create Questions objects
     def getQuestionList(all_questions):
-            question_list = []
+        question_list = []
 
-            for question in all_questions:
-                  current_question =  {
-                      "id"  : question.id,
-                      "question"  : question.question,
-                      "answer": question.answer,
-                      "category": question.category,
-                      "difficulty": question.difficulty}
-                  question_list.append(current_question)
-            return question_list
+        for question in all_questions:
+            current_question = {
+                "id": question.id,
+                "question": question.question,
+                "answer": question.answer,
+                "category": question.category,
+                "difficulty": question.difficulty}
+            question_list.append(current_question)
+        return question_list
     # Helper function to make the database requests
-    def getQuestions(page, by_category_id = None, by_search = None):
+
+    def getQuestions(page, by_category_id=None, by_search=None):
         try:
-          
-          response = {}
-          categories_list = {}
-          all_categories = Category.query.all()
 
-          if(by_category_id):
-            all_questions = Question.query.filter_by(category = by_category_id).all()
-            currentCategory = Category.query.filter_by(id = by_category_id).first()
+            response = {}
+            categories_list = {}
+            all_categories = Category.query.all()
 
-            question_list = getQuestionList(all_questions)
+            if(by_search):
+                all_questions = Question.query.filter(Question.question.ilike(f'%{by_search}%')).paginate(
+                    page, QUESTIONS_PER_PAGE, False)
 
-            response ==  {
-                  'questions': question_list,
-                  'totalQuestions': len(question_list),
-                  'currentCategory': currentCategory
-                  }   
+                all_questions_length = len(Question.query.filter(
+                    Question.question.ilike(f'%{by_search}%')).all())
 
-            print("by_id")
-          elif(by_search):
-            print("By search")
-          else:
-              all_questions = Question.query.paginate(page, QUESTIONS_PER_PAGE, False)
-              all_questions = all_questions.items
-              question_list = getQuestionList(all_questions)
+                all_questions = all_questions.items
+                question_list = getQuestionList(all_questions)
 
-              all_categories = Category.query.all()
-              for category in all_categories:
-                  categories_list[category.id] = category.type
+                response = {
+                    'questions': question_list,
+                    'total_questions': all_questions_length,
+                    'currentCategory': ''
+                }
+                print("searching")
+            elif(by_category_id):
 
-              response = {
-              'questions': question_list,
-              'totalQuestions': len(question_list),
-              'categories': categories_list,
-              'currentCategory': ''
-              }   
+                all_questions_length = len(Question.query.filter_by(
+                    category=by_category_id).all())
+                print(all_questions_length)
 
-          return response  
+                all_questions = Question.query.filter_by(
+                    category=by_category_id).paginate(
+                    page, QUESTIONS_PER_PAGE, False)
+                all_questions = all_questions.items
+
+                question_list = getQuestionList(all_questions)
+
+                currentCategory = Category.query.filter_by(
+                    id=by_category_id).first().type
+
+                response = {
+                    'questions': question_list,
+                    'total_questions': all_questions_length,
+                    'currentCategory': currentCategory
+                }
+
+                print("by_id")
+            else:
+                all_questions_length = Question.query.all()
+                all_questions = Question.query.paginate(
+                    page, QUESTIONS_PER_PAGE, False)
+                all_questions = all_questions.items
+                question_list = getQuestionList(all_questions)
+
+                all_categories = Category.query.all()
+                for category in all_categories:
+                    categories_list[category.id] = category.type
+
+                response = {
+                    'questions': question_list,
+                    'total_questions': len(all_questions_length),
+                    'categories': categories_list,
+                    'currentCategory': ''
+                }
+
+            return response
         except os.error as error:
-          print("Server Error: Could not get Database data")
-          print(error)
-          return None
-
+            print("Server Error: Could not get Database data")
+            print(error)
+            return None
 
     @app.route('/questions/')
     def retrieve_questions():
-        page = request.args.get('page', default = 1, type = int)
-        print("getting page ")
-        print(page)
+        page = request.args.get('page', default=1, type=int)
         result = getQuestions(page)
 
         question_data = result
         if(len(question_data) == 0):
-          abort(400)
+            abort(400)
 
         return jsonify(question_data)
 
     @app.route('/categories/<category_id>')
     def questions_by_category(category_id):
-        page = request.args.get('page', default = 1, type = int)
+
+        page = request.args.get('page', default=1, type=int)
         result = getQuestions(page, category_id)
 
         if(result == None):
-          abort(500)
+            abort(500)
         question_data = result
         if(len(question_data) == 0):
-          abort(400)
+            abort(400)
 
         return jsonify(question_data)
 
+    @app.route('/search/questions', methods=["POST"])
+    def get_by_search():
+        search_term = request.json.get('searchTerm')
+        print(search_term)
 
-    @app.route('/category/<category_id>/questions')
-    def questions_by_asdcategory(category_id):
-        page = request.args.get('page', default = 1, type = int)
-
-        result = getQuestions(page, category_id)
-
+        # Helper function to get searched questions
+        result = getQuestions(1, 0, search_term)
         # question_data = result
         # if(len(question_data) == 0):
         #   abort(400)
 
-        return jsonify({"question_data"})
+        return result
     '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
