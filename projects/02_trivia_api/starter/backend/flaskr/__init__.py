@@ -163,18 +163,92 @@ def create_app(test_config=None):
 
         return jsonify(result)
 
-    @app.route('/questions/<question_id>/delete', methods=["DELETE"])
-    def delete_question(question_id):
-        
-        the_question =  Question.query.filter(Question.id == question_id)
-        the_question.delete()
-        
+    @app.route('/questions/add', methods=["POST"])
+    def add_question():
+
+        question_data = request.json
+
+        user_question = str(question_data['question'])
+        user_answer = str(question_data['answer'])
+        user_difficulty = int(question_data['difficulty'])
+        user_category = str(question_data['category'])
+
+        if(user_question != "" and user_answer != "" and user_difficulty != "" and user_category != ""):
+            the_Question = Question(question=user_question, answer=user_answer,
+                                    category=user_category, difficulty=user_difficulty)
+            the_Question.insert()
+            return jsonify({"success": True})
+        else:
+            abort(404)
+
+        # TODO EXCEPTION  HANDLING
         # Helper function to get searched questions
         # question_data = result
-        # if(len(question_data) == 0):
-        #   abort(400)
-        
-        return jsonify({"success":True})
+        if(len(question_data) == 0):
+          abort(400)
+
+        return jsonify({"success": True})
+
+    @app.route('/categories/all', methods=["GET"])
+    def get_all_categories():
+
+        # Get all categories
+        categories_list = {}
+        all_categories = Category.query.all()
+        for category in all_categories:
+            categories_list[category.id] = category.type
+
+        return jsonify({"categories": categories_list})
+
+    # Helper function to get a random question from DB
+
+    def getRandomQuestion(quiz_category, previous_questions):
+
+        # Get all entries in Databse and choose a random ID
+        questions = Question.query.filter_by(
+            category=quiz_category).all()
+
+        formatted_questions = [question.format() for question in questions]
+        potential_questions = []
+        choosen_question = ''
+
+        for questions in formatted_questions:
+            if questions['id'] not in previous_questions:
+                potential_questions.append(questions)
+
+        if len(potential_questions) > 0:
+            choosen_question = random.choice(potential_questions)
+
+        return choosen_question
+
+    @app.route('/quizzes/questions', methods=["GET", "POST"])
+    def quiz():
+
+        # Getting user data
+        quiz_data = request.json
+        previous_questions = quiz_data['previous_questions']
+        quiz_category = quiz_data['quiz_category']['id']
+
+        # Getting a random question using a helper function
+        choosen_question = getRandomQuestion(quiz_category, previous_questions)
+
+        return jsonify({
+            "question": choosen_question
+        })
+
+    @app.route('/questions/<question_id>/delete', methods=["DELETE"])
+    def delete_question(question_id):
+
+        # TODO EXCEPTION  HANDLING
+        the_question = Question.query.filter(
+            Question.id == question_id).one_or_none()
+        if the_question != None:
+            print(the_question)
+            the_question.delete()
+        else:
+            abort(404)
+
+        return jsonify({"success": True})
     '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
@@ -232,7 +306,7 @@ def create_app(test_config=None):
   Create a POST endpoint to get questions to play the quiz. 
   This endpoint should take category and previous question parameters 
   and return a random questions within the given category, 
-  if provided, and that is not one of the previous questions. 
+  if provided, and that !=one of the previous questions. 
 
   TEST: In the "Play" tab, after a user selects "All" or a category,
   one question at a time is displayed, the user is allowed to answer
@@ -245,4 +319,43 @@ def create_app(test_config=None):
   including 404 and 422. 
   '''
 
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({
+            "success": False,
+            "error": 400,
+            "message": "Bad Request"
+        }), 400
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            "success": False,
+            "error": 404,
+            "message": "Resource Not Found"
+        }), 404
+
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({
+            "success": False,
+            "error": 405,
+            "message": "Method Not Allowed"
+        }), 405
+
+    @app.errorhandler(422)
+    def unprocessable_entity(error):
+        return jsonify({
+            "success": False,
+            "error": 422,
+            "message": "Unprocessable entity"
+        }), 422
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return jsonify({
+            'success': False,
+            'error': 500,
+            'message': 'Internal server error'
+        }), 500
     return app

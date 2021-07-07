@@ -14,7 +14,8 @@ class TriviaTestCase(unittest.TestCase):
         """Define test variables and initialize app."""
         self.app = create_app()
         self.client = self.app.test_client
-        # Custom database setup because compatibility issues
+        
+# Custom database setup because compatibility issues with windows
         self.database_name = "trivia_test"
         self.PORT = 5432
         self.DB_USERNAME = 'student'
@@ -28,7 +29,7 @@ class TriviaTestCase(unittest.TestCase):
             self.db.init_app(self.app)
             # create all tables
             self.db.create_all()
-    
+
     def tearDown(self):
         """Executed after reach test"""
         pass
