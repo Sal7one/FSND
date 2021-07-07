@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
+from werkzeug.utils import redirect
+
 
 from models import setup_db, Question, Category
 
@@ -159,7 +161,20 @@ def create_app(test_config=None):
         # if(len(question_data) == 0):
         #   abort(400)
 
-        return result
+        return jsonify(result)
+
+    @app.route('/questions/<question_id>/delete', methods=["DELETE"])
+    def delete_question(question_id):
+        
+        the_question =  Question.query.filter(Question.id == question_id)
+        the_question.delete()
+        
+        # Helper function to get searched questions
+        # question_data = result
+        # if(len(question_data) == 0):
+        #   abort(400)
+        
+        return jsonify({"success":True})
     '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
