@@ -8,8 +8,8 @@ PORT = 5432
 DB_USERNAME = 'student'
 DB_PATH = 'localhost'
 database_name = "trivia"
-#                                         :aa050 is needed windows required passwords
-database_path = f'postgresql://{DB_USERNAME}:aa050@{DB_PATH}:{PORT}/{database_name}'
+
+database_path = f'postgresql://{DB_USERNAME}@{DB_PATH}:{PORT}/{database_name}'
 db = SQLAlchemy()
 
 '''

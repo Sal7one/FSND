@@ -14,7 +14,7 @@ class TriviaTestCase(unittest.TestCase):
         """Define test variables and initialize app."""
         self.app = create_app()
         self.client = self.app.test_client
-        
+
 # Custom database setup because compatibility issues with windows
         self.database_name = "trivia_test"
         self.PORT = 5432

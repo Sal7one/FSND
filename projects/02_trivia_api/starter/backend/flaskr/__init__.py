@@ -1,9 +1,12 @@
 import os
 import re
+import sys
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
+from sqlalchemy.sql.expression import false
+from werkzeug.exceptions import NotFound
 
 from werkzeug.utils import redirect
 
@@ -17,33 +20,35 @@ def create_app(test_config=None):
     # create and configure the apps
     app = Flask(__name__)
     setup_db(app)
-
     '''
-  @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
-  '''
+    DONE --   @TODO --  DONE 
+        Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
+    '''
     CORS(app, resources={r"/api/*": {'origins': '*'}})
 
     '''
-  @TODO: Use the after_request decorator to set Access-Control-Allow
-  '''
+    DONE --   @TODO --  DONE 
+        Use the after_request decorator to set Access-Control-Allow
+    '''
     # CORS Rules
     @app.after_request
     def after_request(response):
-        response.headers.add('Access-Control-Allow-Headers',
-                             'Content-Type,Authorization,true')
-        response.headers.add('Access-Control-Allow-Methods',
-                             'GET,PUT,POST,DELETE,OPTIONS')
+
+        # Allow only used methods
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,DELETE')
         return response
 
     # Helper function to make the database requests
-
     def getQuestions(page, by_category_id=None, by_search=None):
+
+        # We get the data diffrently based on the parameters  from the calling function
         try:
 
+            # Setup for all cases, and avoiding repation
             response = {}
             categories_list = {}
-            all_categories = Category.query.all()
 
+            # Case search term was suppiled
             if(by_search):
                 all_questions = Question.query.filter(Question.question.ilike(f'%{by_search}%')).paginate(
                     page, QUESTIONS_PER_PAGE, False)
@@ -60,12 +65,11 @@ def create_app(test_config=None):
                     'total_questions': all_questions_length,
                     'currentCategory': ''
                 }
-                print("searching")
+            # Case category id was supplied
             elif(by_category_id):
 
                 all_questions_length = len(Question.query.filter_by(
                     category=by_category_id).all())
-                print(all_questions_length)
 
                 all_questions = Question.query.filter_by(
                     category=by_category_id).paginate(
@@ -83,8 +87,7 @@ def create_app(test_config=None):
                     'total_questions': all_questions_length,
                     'currentCategory': currentCategory
                 }
-
-                print("by_id")
+            # Case none of the above were supplied get all data.
             else:
                 all_questions_length = Question.query.all()
                 all_questions = Question.query.paginate(
@@ -105,10 +108,11 @@ def create_app(test_config=None):
                 }
 
             return response
-        except os.error as error:
-            print("Server Error: Could not get Database data")
-            print(error)
-            return None
+        except:
+            # Database error
+            print(sys.exc_info())
+            abort(500)
+
     '''
     DONE --   @TODO --  DONE 
   Create an endpoint to handle GET requests for questions, 
@@ -121,14 +125,16 @@ def create_app(test_config=None):
   ten questions per page and pagination at the bottom of the screen for three pages.
   Clicking on the page numbers should update the questions. 
   '''
-    @app.route('/questions/')
+    @app.route('/questions/', methods=["GET"])
     def retrieve_questions():
+        # Getting user data
         page = request.args.get('page', default=1, type=int)
-        result = getQuestions(page)
 
-        question_data = result
-        if(len(question_data) == 0):
-            abort(400)
+        # Get Questions with helper function
+        question_data = getQuestions(page)
+
+        if question_data is NotFound or question_data is None:
+            abort(404)
 
         return jsonify(question_data)
 
@@ -141,17 +147,17 @@ def create_app(test_config=None):
   category to be shown. 
   '''
 
-    @app.route('/categories/<category_id>')
+    @app.route('/categories/<category_id>', methods=["GET"])
     def questions_by_category(category_id):
 
         page = request.args.get('page', default=1, type=int)
-        result = getQuestions(page, category_id)
+        # Due to front-end not handling pages correctly we always assume it's 1
+        page = 1
 
-        if(result == None):
-            abort(500)
-        question_data = result
-        if(len(question_data) == 0):
-            abort(400)
+        question_data = getQuestions(page, category_id)
+
+        if question_data is NotFound or question_data is None:
+            abort(404)
 
         return jsonify(question_data)
 
@@ -169,15 +175,15 @@ def create_app(test_config=None):
     @app.route('/search/questions', methods=["POST"])
     def get_by_search():
         search_term = request.json.get('searchTerm')
-        print(search_term)
 
         # Helper function to get searched questions
         result = getQuestions(1, 0, search_term)
-        # question_data = result
-        # if(len(question_data) == 0):
-        #   abort(400)
+        question_data = result
 
-        return jsonify(result)
+        if question_data is NotFound or question_data is None:
+            abort(404)
+
+        return jsonify(question_data)
 
     '''
     DONE --   @TODO --  DONE 
@@ -193,28 +199,30 @@ def create_app(test_config=None):
     @app.route('/questions/add', methods=["POST"])
     def add_question():
 
+        # Getting user data and making sure it's the same data-type as DB MODEL
         question_data = request.json
-
         user_question = str(question_data['question'])
         user_answer = str(question_data['answer'])
         user_difficulty = int(question_data['difficulty'])
         user_category = str(question_data['category'])
 
+        # Checking if there's an input error and handling it as entry error
         if(user_question != "" and user_answer != "" and user_difficulty != "" and user_category != ""):
+
+            # Instace of DB object with our Data
             the_Question = Question(question=user_question, answer=user_answer,
                                     category=user_category, difficulty=user_difficulty)
-            the_Question.insert()
-            return jsonify({"success": True})
+            # Try inserting into DB
+            try:
+                the_Question.insert()
+                return jsonify({"success": True})
+            # Server error from SQL Alchemy
+            except:
+                print(sys.exc_info())
+                abort(500)
         else:
-            abort(404)
+            abort(422)
 
-        # # TODO EXCEPTION  HANDLING
-        # # Helper function to get searched questions
-        # # question_data = result
-        # if(len(question_data) == 0):
-        #     abort(400)
-
-        # return jsonify({"success": True})
     '''
     DONE --   @TODO --  DONE 
   Create an endpoint to handle GET requests 
@@ -232,30 +240,37 @@ def create_app(test_config=None):
         return jsonify({"categories": categories_list})
 
     # Helper function to get a random question from DB
-
     def getRandomQuestion(quiz_category, previous_questions):
 
-        # Get all entries in Databse and choose a random ID
+        # if quiz_category is  = 0, that means all questions without filter...
+        #   ....This value of 0 is how the front-end wanted to be handled
+        try:
+            questions = None
 
-        # if quiz_category is  = 0, that means all questions without filter
-        # This value of 0 is how the front-end wanted to be handled
-        if quiz_category == 0:
-            questions = Question.query.all()
-        else:
-            questions = Question.query.filter_by(category=quiz_category).all()
+            if quiz_category == 0:
+                questions = Question.query.all()
+            else:
+                questions = Question.query.filter_by(
+                    category=quiz_category).all()
 
-        formatted_questions = [question.format() for question in questions]
-        potential_questions = []
-        choosen_question = ''
+            # Setup data needed to get a random question
+            formatted_questions = [question.format() for question in questions]
+            potential_questions = []
+            choosen_question = ''
 
-        for questions in formatted_questions:
-            if questions['id'] not in previous_questions:
-                potential_questions.append(questions)
+            # Check if the question is not in already displayed add it
+            for questions in formatted_questions:
+                if questions['id'] not in previous_questions:
+                    potential_questions.append(questions)
 
-        if len(potential_questions) > 0:
-            choosen_question = random.choice(potential_questions)
+            if len(potential_questions) > 0:
+                choosen_question = random.choice(potential_questions)
 
-        return choosen_question
+            return choosen_question
+        except:
+            # Handle database error
+            print(sys.exc_info())
+            abort(500)
 
     '''
     DONE --   @TODO --  DONE 
@@ -267,11 +282,15 @@ def create_app(test_config=None):
     @app.route('/questions/<question_id>/delete', methods=["DELETE"])
     def delete_question(question_id):
 
-        # TODO EXCEPTION  HANDLING
-        the_question = Question.query.filter(
-            Question.id == question_id).one_or_none()
+        try:
+            the_question = Question.query.filter(
+                Question.id == question_id).one_or_none()
+        except:
+           # Handle database error
+            print(sys.exc_info())
+            abort(500)
+
         if the_question != None:
-            print(the_question)
             the_question.delete()
         else:
             abort(404)
@@ -301,6 +320,9 @@ def create_app(test_config=None):
         # Getting a random question using a helper function
         choosen_question = getRandomQuestion(quiz_category, previous_questions)
 
+        if choosen_question is NotFound or choosen_question is None:
+            abort(404)
+
         return jsonify({
             "question": choosen_question
         })
@@ -313,41 +335,51 @@ def create_app(test_config=None):
 
     @app.errorhandler(400)
     def bad_request(error):
+        print(error)
+        print(sys.exc_info())
         return jsonify({
             "success": False,
-            "error": error,
+            "error": 400,
             "message": "Bad Request"
         }), 400
 
     @app.errorhandler(404)
     def not_found(error):
+        print(error)
+        print(sys.exc_info())
         return jsonify({
             "success": False,
-            "error": error,
+            "error": 404,
             "message": "Resource Not Found"
         }), 404
 
     @app.errorhandler(405)
     def method_not_allowed(error):
+        print(error)
+        print(sys.exc_info())
         return jsonify({
             "success": False,
-            "error": error,
+            "error": 405,
             "message": "Method Not Allowed"
         }), 405
 
     @app.errorhandler(422)
     def unprocessable_entity(error):
+        print(error)
+        print(sys.exc_info())
         return jsonify({
             "success": False,
-            "error": error,
+            "error": 422,
             "message": "Unprocessable entity"
         }), 422
 
     @app.errorhandler(500)
     def internal_server_error(error):
+        print(error)
+        print(sys.exc_info())
         return jsonify({
             'success': False,
-            'error': error,
+            'error': 500,
             'message': 'Internal server error'
         }), 500
     return app
