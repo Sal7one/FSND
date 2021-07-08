@@ -39,11 +39,37 @@ class TriviaTestCase(unittest.TestCase):
     Write at least one test for each test for successful operation and for expected errors.
     """
 
-    def test_get_all_questions(self):
+    def test_retrieve_questions(self):
         response = self.client().get('/questions/')
         res = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(res['questions'])
+        self.assertTrue(res['total_questions'])
+        self.assertTrue(res['categories'])
+
+     # Post is not allowed at this endpoint so method not allowed (405) is excpted
+    def test_405_retrieve_questions(self):
+        response = self.client().post('/questions/')
+        res = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(res['error'], 405)
+
+    def test_questions_by_category(self):
+        response = self.client().get('/categories/2')
+        res = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(res['currentCategory'], 'Art')
+        self.assertTrue(res['questions'])
+        self.assertTrue(res['total_questions'])
+
+    def test_500_questions_by_category(self):
+        response = self.client().get('/categories/20202021')
+        res = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 500)
 
 
 # Make the tests conveniently executable
