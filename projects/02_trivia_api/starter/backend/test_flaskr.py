@@ -20,7 +20,7 @@ class TriviaTestCase(unittest.TestCase):
         self.PORT = 5432
         self.DB_USERNAME = 'student'
         self.DB_PATH = 'localhost'
-        self.database_path = f'postgresql://{self.DB_USERNAME}@{self.DB_PATH}:{self.PORT}/{self.database_name}'
+        self.database_path = f'postgresql://{self.DB_USERNAME}:aa050@{self.DB_PATH}:{self.PORT}/{self.database_name}'
         setup_db(self.app, self.database_path)
 
         # binds the app to the current context
@@ -38,6 +38,12 @@ class TriviaTestCase(unittest.TestCase):
     TODO
     Write at least one test for each test for successful operation and for expected errors.
     """
+
+    def test_get_all_questions(self):
+        response = self.client().get('/questions/')
+        res = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
 
 
 # Make the tests conveniently executable
