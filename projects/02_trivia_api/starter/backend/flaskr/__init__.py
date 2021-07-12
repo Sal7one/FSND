@@ -5,7 +5,8 @@ from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
-from sqlalchemy.sql.expression import false
+from sqlalchemy.sql.elements import Null
+from sqlalchemy.sql.expression import false, null
 from werkzeug.exceptions import NotFound
 
 from werkzeug.utils import redirect
@@ -42,11 +43,12 @@ def create_app(test_config=None):
     def getQuestions(page, by_category_id=None, by_search=None):
 
         # We get the data diffrently based on the parameters  from the calling function
-        try:
 
-            # Setup for all cases, and avoiding repation
-            response = {}
-            categories_list = {}
+        # Setup for all cases, and avoiding repation
+        response = {}
+        categories_list = {}
+
+        try:
 
             # Case search term was suppiled
             if(by_search):
@@ -65,9 +67,9 @@ def create_app(test_config=None):
                     'total_questions': all_questions_length,
                     'currentCategory': ''
                 }
+
             # Case category id was supplied
             elif(by_category_id):
-
                 all_questions_length = len(Question.query.filter_by(
                     category=by_category_id).all())
 
@@ -80,13 +82,18 @@ def create_app(test_config=None):
                                  for question in all_questions]
 
                 currentCategory = Category.query.filter_by(
-                    id=by_category_id).first().type
+                    id=by_category_id).first()
 
-                response = {
-                    'questions': question_list,
-                    'total_questions': all_questions_length,
-                    'currentCategory': currentCategory
-                }
+                if(currentCategory != None):
+                    currentCategory = currentCategory.type
+                    response = {
+                        'questions': question_list,
+                        'total_questions': all_questions_length,
+                        'currentCategory': currentCategory
+                    }
+                else:
+                    response = None
+
             # Case none of the above were supplied get all data.
             else:
                 all_questions_length = Question.query.all()
@@ -100,16 +107,18 @@ def create_app(test_config=None):
                 for category in all_categories:
                     categories_list[category.id] = category.type
 
-                response = {
-                    'questions': question_list,
-                    'total_questions': len(all_questions_length),
-                    'categories': categories_list,
-                    'currentCategory': ''
-                }
+                    if(all_categories != None):
+                        response = {
+                            'questions': question_list,
+                            'total_questions': len(all_questions_length),
+                            'categories': categories_list,
+                            'currentCategory': ''
+                        }
+                    else:
+                        response = None
 
             return response
         except:
-            # Database error
             print(sys.exc_info())
             abort(500)
 
@@ -174,7 +183,12 @@ def create_app(test_config=None):
 
     @app.route('/search/questions', methods=["POST"])
     def get_by_search():
-        search_term = request.json.get('searchTerm')
+        front_end_expected_json = "searchTerm"
+        search_term = request.json.get(front_end_expected_json)
+
+        # User messed with correct expected front end json
+        if search_term is None:
+            abort(422)
 
         # Helper function to get searched questions
         result = getQuestions(1, 0, search_term)
@@ -200,14 +214,17 @@ def create_app(test_config=None):
     def add_question():
 
         # Getting user data and making sure it's the same data-type as DB MODEL
-        question_data = request.json
-        user_question = str(question_data['question'])
-        user_answer = str(question_data['answer'])
-        user_difficulty = int(question_data['difficulty'])
-        user_category = str(question_data['category'])
 
+        question_data = request.json
+        try:
+            user_question = str(question_data['question'])
+            user_answer = str(question_data['answer'])
+            user_difficulty = int(question_data['difficulty'])
+            user_category = str(question_data['category'])
+        except:
+            abort(422)
         # Checking if there's an input error and handling it as entry error
-        if(user_question != "" and user_answer != "" and user_difficulty != "" and user_category != ""):
+        if(user_question != "" and user_answer != "" and user_difficulty != None and user_category != ""):
 
             # Instace of DB object with our Data
             the_Question = Question(question=user_question, answer=user_answer,
@@ -233,7 +250,13 @@ def create_app(test_config=None):
 
         # Get all categories
         categories_list = {}
-        all_categories = Category.query.all()
+        try:
+            all_categories = Category.query.all()
+        except:
+            abort(500)
+        if(all_categories is None):
+            abort(404)
+
         for category in all_categories:
             categories_list[category.id] = category.type
 
@@ -252,6 +275,10 @@ def create_app(test_config=None):
             else:
                 questions = Question.query.filter_by(
                     category=quiz_category).all()
+                    
+                # No questions found 
+                if questions == []:
+                    return None
 
             # Setup data needed to get a random question
             formatted_questions = [question.format() for question in questions]
@@ -310,7 +337,7 @@ def create_app(test_config=None):
   '''
 
     @app.route('/quizzes/questions', methods=["POST"])
-    def quiz():
+    def make_quiz():
 
         # Getting user data
         quiz_data = request.json
