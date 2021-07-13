@@ -9,7 +9,7 @@ DB_USERNAME = 'student'
 DB_PATH = 'localhost'
 database_name = "trivia"
 
-database_path = f'postgresql://{DB_USERNAME}@{DB_PATH}:{PORT}/{database_name}'
+database_path = f'postgresql://{DB_USERNAME}:aa050@{DB_PATH}:{PORT}/{database_name}'
 db = SQLAlchemy()
 
 '''

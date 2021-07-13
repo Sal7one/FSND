@@ -21,7 +21,7 @@ class TriviaTestCase(unittest.TestCase):
         self.PORT = 5432
         self.DB_USERNAME = 'student'
         self.DB_PATH = 'localhost'
-        self.database_path = f'postgresql://{self.DB_USERNAME}@{self.DB_PATH}:{self.PORT}/{self.database_name}'
+        self.database_path = f'postgresql://{self.DB_USERNAME}:aa050@{self.DB_PATH}:{self.PORT}/{self.database_name}'
         setup_db(self.app, self.database_path)
 
         # binds the app to the current context
@@ -67,7 +67,7 @@ class TriviaTestCase(unittest.TestCase):
     # ------------- TEST 1  ------ Bad request ---------------------
     # Post is not allowed at this endpoint so method not allowed (405)
 
-    def test_retrieve_questions(self):
+    def test_405_retrieve_questions(self):
         response = self.client().post('/questions/')
         res = json.loads(response.data)
 
@@ -91,7 +91,7 @@ class TriviaTestCase(unittest.TestCase):
 
     # ------------- TEST 2  ------ Bad request ---------------------
     # Random category that does not exisit
-    def test_questions_by_category(self):
+    def test_404_questions_by_category(self):
         response = self.client().get('/categories/20202021')
         self.assertEqual(response.status_code, 404)
 
@@ -108,7 +108,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(res['questions'][0]['answer'])
 
     # ------------- TEST 3  ------ Bad request ---------------------
-    def test_get_by_search(self):
+    def test_422_get_by_search(self):
         # ------------------------------------- BAD JSON DATA ---- Front end should send 'searchTerm' as key ------
         response = self.client().post(
             '/search/questions', json={'RandomThing': 'title'})
@@ -135,7 +135,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res['success'], True)
 
     # ------------- TEST 4  ------ Bad request ---------------------
-    def test_add_question(self):
+    def test_422_add_question(self):
 
         # Question data to be inserted
         question_json = {
@@ -152,13 +152,12 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_get_all_categories(self):
         response = self.client().get('/categories/all')
-        res = response.data
-
+        res = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(res['categories'])
 
     # ------------- TEST 5  ------ Bad request ---------------------
-    def test_get_all_categories(self):
+    def test_405_get_all_categories(self):
         # Post - > "method not allowed" expecting 405
         response = self.client().post('/categories/all')
         self.assertEqual(response.status_code, 405)
@@ -166,14 +165,22 @@ class TriviaTestCase(unittest.TestCase):
     # ------------- TEST 6  ------ Correct request ---------------------
 
     def test_delete_question(self):
-        response = self.client().delete('/questions/3/delete')
-        res = response.data
+
+        # create a mock question, insert it, get it's id
+        the_Question = Question(question='user_question', answer='user_answer',
+                                    category='2', difficulty= 2)
+        the_Question.insert()
+        q_id = the_Question.id
+
+
+        response = self.client().delete(f'/questions/{q_id}/delete')
+        res = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(res['success'], True)
 
     # ------------- TEST 6  ------ Bad request ---------------------
-    def test_delete_question(self):
+    def test_bad_delete_question(self):
         # Question 50000000 Not found  expecting 404
         response = self.client().delete('/questions/50000000/delete')
         self.assertEqual(response.status_code, 404)
@@ -196,14 +203,14 @@ class TriviaTestCase(unittest.TestCase):
 
     # ------------- TEST 7  ------ Bad request ---------------------
 
-    def test_make_quiz(self):
+    def test_404_make_quiz(self):
      # quiz data to be worked with
         quiz_json = {
             'previous_questions': [],
             'quiz_category': {'id': 66},
         }
         response = self.client().post('/quizzes/questions', json=quiz_json)
-        
+
         # We Don't have a quesiton in  category 66 (does not exisit)
         self.assertEqual(response.status_code, 404)
 

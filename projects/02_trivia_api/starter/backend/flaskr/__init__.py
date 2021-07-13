@@ -275,8 +275,8 @@ def create_app(test_config=None):
             else:
                 questions = Question.query.filter_by(
                     category=quiz_category).all()
-                    
-                # No questions found 
+
+                # No questions found
                 if questions == []:
                     return None
 
@@ -309,13 +309,8 @@ def create_app(test_config=None):
     @app.route('/questions/<question_id>/delete', methods=["DELETE"])
     def delete_question(question_id):
 
-        try:
-            the_question = Question.query.filter(
+        the_question = Question.query.filter(
                 Question.id == question_id).one_or_none()
-        except:
-           # Handle database error
-            print(sys.exc_info())
-            abort(500)
 
         if the_question != None:
             the_question.delete()
