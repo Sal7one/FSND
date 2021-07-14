@@ -340,7 +340,7 @@ The error codes currently returned are:
 
 #### Authors
 
-- All starter project rights go to udaicty
+- All starter project rights go to udacity
 
 - Front-end enhancment by Github: @iMishaDev, and small updates by me Github: @Sal7one
 
