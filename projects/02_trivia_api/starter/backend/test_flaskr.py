@@ -98,8 +98,8 @@ class TriviaTestCase(unittest.TestCase):
     # ------------- TEST 3  ------ Correct request ---------------------
 
     def test_get_by_search(self):
-        response = self.client().post(     # Udacity requirements:  word = title
-            '/questions/search', json={'searchTerm': 'title'})
+        response = self.client().post(  # There's probably a question that has a ? in it
+            '/questions/search', json={'searchTerm': '?'})
         res = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
 

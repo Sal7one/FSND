@@ -338,7 +338,8 @@ def create_app(test_config=None):
 
         # Getting a random question using a helper function
         choosen_question = getRandomQuestion(quiz_category, previous_questions)
-
+        if(choosen_question is None):
+            abort(404)
         return jsonify({
             "question": choosen_question
         })
