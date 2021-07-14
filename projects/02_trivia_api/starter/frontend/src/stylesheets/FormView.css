@@ -4,6 +4,9 @@
   justify-content: space-between;
 }
 
+label > select > option {
+  background-color: #35353c;
+}
 
 .form-view > label {
   padding: 0px 0px 10px;
