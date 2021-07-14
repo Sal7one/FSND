@@ -21,7 +21,8 @@ class TriviaTestCase(unittest.TestCase):
         self.PORT = 5432
         self.DB_USERNAME = 'student'
         self.DB_PATH = 'localhost'
-        self.database_path = f'postgresql://{self.DB_USERNAME}@{self.DB_PATH}:{self.PORT}/{self.database_name}'
+        self.database_path = f'''postgresql://{self.DB_USERNAME}@
+        {self.DB_PATH}:{self.PORT}/{self.database_name}'''
         setup_db(self.app, self.database_path)
 
         # binds the app to the current context
@@ -37,7 +38,8 @@ class TriviaTestCase(unittest.TestCase):
 
     """
     TODO
-    Write at least one test for each test for successful operation and for expected errors.
+    Write at least one test for each test for
+    successful operation and for expected errors.
     """
 
     # ------------- TEST 0  ---------------------------
@@ -98,7 +100,8 @@ class TriviaTestCase(unittest.TestCase):
     # ------------- TEST 3  ------ Correct request ---------------------
 
     def test_get_by_search(self):
-        response = self.client().post(  # There's probably a question that has a ? in it
+        # There's probably a question that has a ? in it
+        response = self.client().post(
             '/questions/search', json={'searchTerm': '?'})
         res = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
@@ -109,7 +112,9 @@ class TriviaTestCase(unittest.TestCase):
 
     # ------------- TEST 3  ------ Bad request ---------------------
     def test_422_get_by_search(self):
-        # ------------------------------------- BAD JSON DATA ---- Front end should send 'searchTerm' as key ------
+        # -------------------------------------
+        # BAD JSON DATA ----
+        # Front end should send 'searchTerm' as key ------
         response = self.client().post(
             '/questions/search', json={'RandomThing': 'title'})
 
@@ -186,7 +191,7 @@ class TriviaTestCase(unittest.TestCase):
 
     # ------------- TEST 7  ------ Correct request ---------------------
     def test_make_quiz(self):
-     # quiz data to be worked with
+        # quiz data to be worked with
         quiz_json = {
             'previous_questions': [],
             'quiz_category': {'id': 2},
@@ -203,7 +208,7 @@ class TriviaTestCase(unittest.TestCase):
     # ------------- TEST 7  ------ Bad request ---------------------
 
     def test_404_make_quiz(self):
-     # quiz data to be worked with
+        # quiz data to be worked with
         quiz_json = {
             'previous_questions': [],
             'quiz_category': {'id': 66},
