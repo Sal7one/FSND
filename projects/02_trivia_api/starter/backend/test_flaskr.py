@@ -21,7 +21,7 @@ class TriviaTestCase(unittest.TestCase):
         self.PORT = 5432
         self.DB_USERNAME = 'student'
         self.DB_PATH = 'localhost'
-        self.database_path = f'postgresql://{self.DB_USERNAME}:aa050@{self.DB_PATH}:{self.PORT}/{self.database_name}'
+        self.database_path = f'postgresql://{self.DB_USERNAME}@{self.DB_PATH}:{self.PORT}/{self.database_name}'
         setup_db(self.app, self.database_path)
 
         # binds the app to the current context
@@ -99,7 +99,7 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_get_by_search(self):
         response = self.client().post(     # Udacity requirements:  word = title
-            '/search/questions', json={'searchTerm': 'title'})
+            '/questions/search', json={'searchTerm': 'title'})
         res = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
 
@@ -111,7 +111,7 @@ class TriviaTestCase(unittest.TestCase):
     def test_422_get_by_search(self):
         # ------------------------------------- BAD JSON DATA ---- Front end should send 'searchTerm' as key ------
         response = self.client().post(
-            '/search/questions', json={'RandomThing': 'title'})
+            '/questions/search', json={'RandomThing': 'title'})
 
         # 422 ( Unprocessable entity )  is expected
         self.assertEqual(response.status_code, 422)
@@ -168,10 +168,9 @@ class TriviaTestCase(unittest.TestCase):
 
         # create a mock question, insert it, get it's id
         the_Question = Question(question='user_question', answer='user_answer',
-                                    category='2', difficulty= 2)
+                                category='2', difficulty=2)
         the_Question.insert()
         q_id = the_Question.id
-
 
         response = self.client().delete(f'/questions/{q_id}/delete')
         res = json.loads(response.data)

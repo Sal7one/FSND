@@ -46,7 +46,6 @@ def create_app(test_config=None):
 
         # Setup for all cases, and avoiding repation
         response = {}
-        categories_list = {}
 
         try:
 
@@ -104,18 +103,18 @@ def create_app(test_config=None):
                                  for question in all_questions]
 
                 all_categories = Category.query.all()
-                for category in all_categories:
-                    categories_list[category.id] = category.type
+                formatted_categories = [category.format()
+                                        for category in all_categories]
 
-                    if(all_categories != None):
-                        response = {
-                            'questions': question_list,
-                            'total_questions': len(all_questions_length),
-                            'categories': categories_list,
-                            'currentCategory': ''
-                        }
-                    else:
-                        response = None
+                if(all_categories != None):
+                    response = {
+                        'questions': question_list,
+                        'total_questions': len(all_questions_length),
+                        'categories': formatted_categories,
+                        'currentCategory': ''
+                    }
+                else:
+                    response = None
 
             return response
         except:
@@ -181,7 +180,7 @@ def create_app(test_config=None):
   Try using the word "title" to start. 
   '''
 
-    @app.route('/search/questions', methods=["POST"])
+    @app.route('/questions/search', methods=["POST"])
     def get_by_search():
         front_end_expected_json = "searchTerm"
         search_term = request.json.get(front_end_expected_json)
@@ -248,19 +247,17 @@ def create_app(test_config=None):
     @app.route('/categories/all', methods=["GET"])
     def get_all_categories():
 
-        # Get all categories
-        categories_list = {}
         try:
             all_categories = Category.query.all()
+            formatted_categories = [category.format()
+                                    for category in all_categories]
+
         except:
             abort(500)
         if(all_categories is None):
             abort(404)
 
-        for category in all_categories:
-            categories_list[category.id] = category.type
-
-        return jsonify({"categories": categories_list})
+        return jsonify({"categories": formatted_categories})
 
     # Helper function to get a random question from DB
     def getRandomQuestion(quiz_category, previous_questions):
@@ -310,7 +307,7 @@ def create_app(test_config=None):
     def delete_question(question_id):
 
         the_question = Question.query.filter(
-                Question.id == question_id).one_or_none()
+            Question.id == question_id).one_or_none()
 
         if the_question != None:
             the_question.delete()
@@ -341,9 +338,6 @@ def create_app(test_config=None):
 
         # Getting a random question using a helper function
         choosen_question = getRandomQuestion(quiz_category, previous_questions)
-
-        if choosen_question is NotFound or choosen_question is None:
-            abort(404)
 
         return jsonify({
             "question": choosen_question
