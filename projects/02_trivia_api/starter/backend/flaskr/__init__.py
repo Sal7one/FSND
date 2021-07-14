@@ -62,6 +62,8 @@ def create_app(test_config=None):
                                  for question in all_questions]
 
                 response = {
+                    'success': True,
+
                     'questions': question_list,
                     'total_questions': all_questions_length,
                     'currentCategory': ''
@@ -86,6 +88,8 @@ def create_app(test_config=None):
                 if(currentCategory != None):
                     currentCategory = currentCategory.type
                     response = {
+                        'success': True,
+
                         'questions': question_list,
                         'total_questions': all_questions_length,
                         'currentCategory': currentCategory
@@ -108,6 +112,7 @@ def create_app(test_config=None):
 
                 if(all_categories != None):
                     response = {
+                        'success': True,
                         'questions': question_list,
                         'total_questions': len(all_questions_length),
                         'categories': formatted_categories,
@@ -231,7 +236,7 @@ def create_app(test_config=None):
             # Try inserting into DB
             try:
                 the_Question.insert()
-                return jsonify({"success": True})
+                return jsonify({"success": True, "message": "Question created."})
             # Server error from SQL Alchemy
             except:
                 print(sys.exc_info())
@@ -257,7 +262,8 @@ def create_app(test_config=None):
         if(all_categories is None):
             abort(404)
 
-        return jsonify({"categories": formatted_categories})
+        return jsonify({'success': True,
+                        "categories": formatted_categories})
 
     # Helper function to get a random question from DB
     def getRandomQuestion(quiz_category, previous_questions):
@@ -314,7 +320,7 @@ def create_app(test_config=None):
         else:
             abort(404)
 
-        return jsonify({"success": True})
+        return jsonify({"success": True,  "message": "Question Deleted."})
 
     '''
     DONE --   @TODO --  DONE 
@@ -340,7 +346,9 @@ def create_app(test_config=None):
         choosen_question = getRandomQuestion(quiz_category, previous_questions)
         if(choosen_question is None):
             abort(404)
+
         return jsonify({
+            'success': True,
             "question": choosen_question
         })
 
